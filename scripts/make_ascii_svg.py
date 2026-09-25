@@ -1,55 +1,72 @@
 """
-Turn a portrait photo into a monochrome ASCII-art SVG that types itself in
-row by row, like a terminal printing it, and then holds still.
+Draw monochrome ASCII art as an SVG that types itself in row by row, like a
+terminal printing it, and then holds still. The art is either ready-made text
+(assets/portrait.txt, the default) or sampled from a photo.
 
 GitHub strips JavaScript from READMEs but runs SMIL animation inside an SVG
 loaded through <img>, which is what makes the reveal work.
 
-Needs Pillow. Run once, locally, whenever the photo changes:
+Run once, locally, whenever the art changes (a photo source needs Pillow):
 
-    python scripts/make_ascii_svg.py [photo] [out.svg]
+    python scripts/make_ascii_svg.py [portrait.txt | photo.jpg] [out.svg]
     STATIC=1 python scripts/make_ascii_svg.py   # no animation, for previews
 """
 import html
 import os
 import sys
 
-from PIL import Image, ImageEnhance, ImageOps
-
 sys.path.insert(0, os.path.dirname(__file__))
 from theme import FRAME, INK, MUTED, PAD, RED, TITLEBAR_H, window  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "assets", "source-photo.jpg")
+SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "assets", "portrait.txt")
 OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, "assets", "portrait.svg")
 
-COLS = 90
 CELL_W = 6
-CELL_H = 11
+CELL_H = 12  # 1:2 cells, the proportions the text art was drawn for
+
+# photo sampling only
+PHOTO_COLS = 90
 RAMP = " .`:-=+*cs#%@"  # light (sparse) -> dark (dense); the space blanks the background
 GAMMA = 1.25            # >1 pushes skin tones towards the sparse end
 WHITE_FLOOR = 0.86      # anything brighter than this is background
 
 ROW_DUR = 0.09          # one row's wipe; the stagger equals it, so one cursor sweeps down
 
-im = Image.open(SRC).convert("L")
-im = ImageOps.autocontrast(im, cutoff=1)
-im = ImageEnhance.Contrast(im).enhance(1.0)
-# Character cells are taller than wide, so sample fewer rows than columns.
-ROWS = round(COLS * im.height / im.width * CELL_W / CELL_H)
-im = im.resize((COLS, ROWS), Image.LANCZOS)
-px = im.load()
 
-rows = []
-for y in range(ROWS):
-    line = []
-    for x in range(COLS):
-        lum = (px[x, y] / 255.0) ** GAMMA
-        if lum >= WHITE_FLOOR:
-            line.append(" ")
-        else:
-            line.append(RAMP[min(len(RAMP) - 1, int((1 - lum) * (len(RAMP) - 1) + 0.5))])
-    rows.append("".join(line))
+
+def from_photo(path):
+    from PIL import Image, ImageEnhance, ImageOps
+
+    im = Image.open(path).convert("L")
+    im = ImageOps.autocontrast(im, cutoff=1)
+    im = ImageEnhance.Contrast(im).enhance(1.0)
+    # Character cells are taller than wide, so sample fewer rows than columns.
+    n_rows = round(PHOTO_COLS * im.height / im.width * CELL_W / CELL_H)
+    im = im.resize((PHOTO_COLS, n_rows), Image.LANCZOS)
+    px = im.load()
+    out = []
+    for y in range(n_rows):
+        line = []
+        for x in range(PHOTO_COLS):
+            lum = (px[x, y] / 255.0) ** GAMMA
+            if lum >= WHITE_FLOOR:
+                line.append(" ")
+            else:
+                line.append(RAMP[min(len(RAMP) - 1, int((1 - lum) * (len(RAMP) - 1) + 0.5))])
+        out.append("".join(line))
+    return out
+
+
+if SRC.endswith(".txt"):
+    with open(SRC) as f:
+        rows = f.read().rstrip("\n").split("\n")
+else:
+    rows = from_photo(SRC)
+# textLength stretches each row to the full width, so every row must be equally long.
+COLS = max(len(r) for r in rows)
+rows = [r.ljust(COLS) for r in rows]
+ROWS = len(rows)
 
 ART_W, ART_H = COLS * CELL_W, ROWS * CELL_H
 STATUS_H = 34

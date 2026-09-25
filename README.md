@@ -1,6 +1,6 @@
 <div align="center">
 
-<!-- portrait: python scripts/make_ascii_svg.py   (needs Pillow; run locally when the photo changes)
+<!-- portrait: python scripts/make_ascii_svg.py   (draws assets/portrait.txt; pass a photo instead to sample one, needs Pillow)
      card:     python scripts/make_card_svg.py    (edit INFO in the script)
      graph:    redrawn daily by .github/workflows/update-profile.yml -->
 
@@ -8,8 +8,8 @@
 
 <table>
 <tr>
-<td valign="top"><img src="./assets/portrait.svg" width="489" alt="Erik Karásek, ASCII portrait" /></td>
-<td valign="top"><img src="./assets/card.svg" width="371" alt="Erik Karásek: full-stack developer. TypeScript, React, React Native, Tauri, Supabase, AI agents." /></td>
+<td valign="top"><img src="./assets/portrait.svg" width="431" alt="Erik Karásek, ASCII portrait" /></td>
+<td valign="top"><img src="./assets/card.svg" width="429" alt="Erik Karásek: full-stack developer. TypeScript, React, React Native, Tauri, Supabase, AI agents." /></td>
 </tr>
 </table>
 

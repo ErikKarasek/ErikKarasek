@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from theme import BLUE, FRAME, GOLD, INK, PAD, RED, TEXT, TITLEBAR_H, window  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-HEIGHT = int(sys.argv[1]) if len(sys.argv) > 1 else 623
+HEIGHT = int(sys.argv[1]) if len(sys.argv) > 1 else 660
 OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, "assets", "card.svg")
 
 USER = "erik@github"

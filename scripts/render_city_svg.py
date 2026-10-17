@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Render data/repos.json as a night skyline where every public repo is a building:
-height from the size of the repo, lit windows from the commits of the last day,
+height from its lines of source, lit windows from the commits of the last day,
 scaffolding for an open pull request, boarded windows for anything untouched for
 months, an antenna on the repo that currently leads the CV, a crane on anything
 built this month.
@@ -26,7 +26,7 @@ MIN_W = 865            # matches the contribution graph above it in the README
 MAX_BUILDING_W = 72
 GAP = 9
 MIN_H, MAX_H = 54, 240
-SKY_H = 26             # breathing room above the tallest roof
+SKY_H = 48             # breathing room above the tallest roof, antenna included
 STREET_H = 66          # room under the ground line for the rotated labels
 LABEL_RUN = 4.6        # horizontal px each label character eats at 34 degrees
 FOOTER_H = 58
@@ -51,11 +51,11 @@ def plural(n, one, few):
     return f"{n} {one if n == 1 else few}"
 
 
-def height_of(kb, tallest):
-    """Square-ish scale, so a monorepo towers without flattening the small ones."""
+def height_of(lines, tallest):
+    """Square-ish scale, so the biggest app towers without flattening the rest."""
     if tallest <= 0:
         return MIN_H
-    return round(MIN_H + (MAX_H - MIN_H) * (kb / tallest) ** 0.62)
+    return round(MIN_H + (MAX_H - MIN_H) * (lines / tallest) ** 0.62)
 
 
 def stars(width, top, bottom, parts):
@@ -156,7 +156,7 @@ def render(data):
                for i, r in enumerate(repos))
     width = max(MIN_W, span + 2 * PAD, round(tail) + PAD)
 
-    tallest = max(r["kb"] for r in repos)
+    tallest = max(r["lines"] for r in repos)
     ground = TITLEBAR_H + SKY_H + MAX_H
     height = ground + STREET_H + FOOTER_H
 
@@ -187,12 +187,13 @@ def render(data):
 
     for i, r in enumerate(repos):
         x = x0 + i * (bw + GAP)
-        h = height_of(r["kb"], tallest)
+        h = height_of(r["lines"], tallest)
         y = ground - h
         dead = r["stale"]
 
         parts.append("<g>")
-        parts.append(f'<title>{esc(r["name"])}: {r["kb"]:,} kB, '
+        parts.append(f'<title>{esc(r["name"])}: {r["lines"]:,} lines of code in '
+                     f'{plural(r["code_files"], "file", "files")}, '
                      f'{plural(r["commits"], "commit", "commits")} in the last '
                      f'{data["window_hours"]} h, last push {r["pushed"][:10]}</title>')
         parts.append(f'<rect x="{x}" y="{y}" width="{bw}" height="{h}" fill="{WALL}" '
@@ -226,7 +227,7 @@ def render(data):
     sep = ground + STREET_H
     parts.append(f'<line x1="0" y1="{sep}" x2="{width}" y2="{sep}" stroke="{FRAME}"/>')
 
-    tall = max(repos, key=lambda r: r["kb"])  # repos is folded, not sorted, by now
+    tall = max(repos, key=lambda r: r["lines"])  # repos is folded, not sorted, by now
     asleep = sum(1 for r in repos if r["stale"])
     active = data.get("active_repos", sum(1 for r in repos if r.get("events")))
     commits = data["commits_in_window"]
@@ -244,13 +245,15 @@ def render(data):
     else:
         head = f'nothing pushed in the last {data["window_hours"]} hours; the city sleeps'
     parts.append(f'<text x="{PAD}" y="{y}" font-size="13" fill="{MUTED}">{head}'
-                 f' &#183; <tspan fill="{INK}">{len(repos)}</tspan> public repos</text>')
+                 f' &#183; <tspan fill="{INK}">{len(repos)}</tspan> public repos, '
+                 f'{sum(r["lines"] for r in repos):,} lines</text>')
     parts.append(f'<text x="{width - PAD}" y="{y}" font-size="12" fill="{MUTED}" '
                  f'text-anchor="end">tallest <tspan fill="{BLUE}" font-weight="700">'
-                 f'{esc(tall["name"])}</tspan> at {tall["kb"]:,} kB</text>')
+                 f'{esc(tall["name"])}</tspan> at {tall["lines"]:,} lines</text>')
     y += 22
     parts.append(f'<text x="{PAD}" y="{y}" font-size="11" fill="{MUTED}">'
-                 f'<tspan fill="{GOLD}">&#9632;</tspan> lit window = a commit in public'
+                 f'height = lines of code'
+                 f'   <tspan fill="{GOLD}">&#9632;</tspan> lit window = a commit in public'
                  f'   <tspan fill="{BLUE}">&#9647;</tspan> scaffolding = open PR'
                  f'   <tspan fill="{RED}">&#9679;</tspan> antenna = leads the CV'
                  + (f'   boarded up = {plural(asleep, "repo", "repos")} quiet for months'

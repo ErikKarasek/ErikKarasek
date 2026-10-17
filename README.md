@@ -25,7 +25,7 @@
 
 <h3><code>erik@github ~ $ ./city.sh</code></h3>
 
-<img src="./assets/city.svg" width="860" alt="Every public repo as a building: height is the size of the repo, lit windows are commits from the last day, scaffolding is an open pull request" />
+<img src="./assets/city.svg" width="860" alt="Every public repo as a building: height is its lines of source, lit windows are commits from the last day, scaffolding is an open pull request" />
 
 <br>
 <br>

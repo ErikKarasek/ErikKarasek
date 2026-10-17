@@ -13,7 +13,10 @@ Run daily by the update-profile workflow, before render_city_svg.py.
 import datetime
 import json
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 
@@ -23,6 +26,19 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "re
 
 # Repos that exist only to hold files, not work worth drawing a building for.
 SKIP = {".github"}
+
+# What counts as code when measuring a repo. Height means lines of source, so
+# a repo full of product photos and 3D models does not out-tower a real app.
+CODE_SUFFIXES = {
+    ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".rs", ".swift", ".go",
+    ".java", ".kt", ".rb", ".php", ".sh", ".zsh", ".sql", ".css", ".scss", ".html",
+    ".vue", ".svelte", ".c", ".h", ".cpp", ".hpp", ".m", ".mm", ".lua", ".dart",
+    ".toml", ".yml", ".yaml", ".gradle", ".pl", ".r", ".ex", ".exs",
+}
+SKIP_PARTS = {"node_modules", "dist", "build", ".next", "vendor", "pods",
+              "third_party", "generated", ".venv", "venv", "target"}
+SKIP_NAMES = {"package-lock.json", "pnpm-lock.yaml", "yarn.lock", "composer.lock",
+              "cargo.lock", "podfile.lock", "gemfile.lock", "poetry.lock"}
 WINDOW_H = 24          # commits counted this far back
 STALE_DAYS = 90        # no push for this long: the building gets boarded up
 NEW_DAYS = 14          # created this recently: it still has a crane on it
@@ -104,6 +120,46 @@ def activity(since):
     return out
 
 
+def code_size(clone_url):
+    """
+    Lines of source in the default branch, from a shallow clone.
+
+    The GitHub API only reports how much disk a repo takes, which is mostly
+    assets for anything with images or 3D models. Cloning is the cheapest way
+    to count actual code: depth 1, deleted right after.
+    """
+    tmp = tempfile.mkdtemp(prefix="city-")
+    try:
+        subprocess.run(["git", "clone", "--depth", "1", "--quiet", clone_url, tmp],
+                       check=True, capture_output=True, timeout=180)
+        files = subprocess.run(["git", "-C", tmp, "ls-files"],
+                               check=True, capture_output=True, text=True, timeout=60).stdout
+        lines = 0
+        counted = 0
+        for rel in files.splitlines():
+            low = rel.lower()
+            if any(part in SKIP_PARTS for part in low.split("/")[:-1]):
+                continue
+            name = low.split("/")[-1]
+            if name in SKIP_NAMES or ".min." in name:
+                continue
+            if os.path.splitext(low)[1] not in CODE_SUFFIXES:
+                continue
+            path = os.path.join(tmp, rel)
+            try:
+                with open(path, "rb") as f:
+                    lines += f.read().count(b"\n") + 1
+                counted += 1
+            except OSError:
+                continue
+        return lines, counted
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as err:
+        print(f"  could not measure {clone_url}: {err}")
+        return 0, 0
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def open_prs(repo):
     """Open pull requests, which is what puts scaffolding on a building."""
     try:
@@ -124,9 +180,12 @@ def build():
         created = datetime.datetime.strptime(r["created_at"], "%Y-%m-%dT%H:%M:%SZ")
         created = created.replace(tzinfo=datetime.timezone.utc)
         row = moved.get(r["name"], {"commits": 0, "events": 0})
+        lines, code_files = code_size(r["clone_url"])
         out.append({
             "name": r["name"],
             "kb": r["size"],
+            "lines": lines,
+            "code_files": code_files,
             "commits": row["commits"],
             "events": row["events"],
             "open_prs": open_prs(r["full_name"]),
@@ -140,7 +199,7 @@ def build():
             "url": r["html_url"],
         })
 
-    out.sort(key=lambda r: -r["kb"])
+    out.sort(key=lambda r: -r["lines"])
     return {
         "username": USERNAME,
         "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -166,5 +225,6 @@ if __name__ == "__main__":
     with open(OUT, "w") as f:
         json.dump(data, f, indent=1)
         f.write("\n")
-    print(f"{len(data['repos'])} public repos, {data['commits_in_window']} commits "
-          f"in the last {data['window_hours']} h")
+    print(f"{len(data['repos'])} public repos, "
+          f"{sum(r['lines'] for r in data['repos']):,} lines of code, "
+          f"{data['commits_in_window']} commits in the last {data['window_hours']} h")

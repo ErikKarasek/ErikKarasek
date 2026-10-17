@@ -1,7 +1,8 @@
-name: Update contribution graph
+name: Update profile images
 
-# Redraws assets/contributions.svg from the public contribution calendar.
-# The portrait and card are static; rebuild them locally (see README comments).
+# Redraws assets/contributions.svg from the public contribution calendar and
+# assets/city.svg from the public repos. The portrait and card are static;
+# rebuild them locally (see README comments).
 
 "on":
   schedule:
@@ -25,10 +26,17 @@ jobs:
       - run: python scripts/fetch_contributions.py
       - run: python scripts/render_heatmap_svg.py
 
+      # The token only lifts the rate limit; the city stays public-only.
+      - run: python scripts/fetch_repos.py
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: python scripts/render_city_svg.py
+
       - name: Commit if anything changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/contributions.json assets/contributions.svg
-          git diff --cached --quiet || git commit -m "chore: refresh contribution graph"
+          git add data/contributions.json assets/contributions.svg \
+                  data/repos.json assets/city.svg
+          git diff --cached --quiet || git commit -m "chore: refresh profile images"
           git push

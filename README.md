@@ -2,7 +2,8 @@
 
 <!-- portrait: python scripts/make_ascii_svg.py   (draws assets/portrait.txt; pass a photo instead to sample one, needs Pillow)
      card:     python scripts/make_card_svg.py    (edit INFO in the script)
-     graph:    redrawn daily by .github/workflows/update-profile.yml -->
+     graph:    redrawn daily by .github/workflows/update-profile.yml
+     city:     same workflow, python scripts/fetch_repos.py + render_city_svg.py -->
 
 <h3><code>erik@github ~ $ whoami</code></h3>
 
@@ -18,6 +19,13 @@
 <h3><code>erik@github ~ $ ./contributions.sh</code></h3>
 
 <img src="./assets/contributions.svg" width="860" alt="Erik's contribution graph, refreshed daily" />
+
+<br>
+<br>
+
+<h3><code>erik@github ~ $ ./city.sh</code></h3>
+
+<img src="./assets/city.svg" width="860" alt="Every public repo as a building: height is the size of the repo, lit windows are commits from the last day, scaffolding is an open pull request" />
 
 <br>
 <br>

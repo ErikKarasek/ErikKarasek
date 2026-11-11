@@ -3,7 +3,8 @@
 <!-- portrait: python scripts/make_ascii_svg.py   (draws assets/portrait.txt; pass a photo instead to sample one, needs Pillow)
      card:     python scripts/make_card_svg.py    (edit INFO in the script)
      graph:    redrawn daily by .github/workflows/update-profile.yml
-     city:     same workflow, python scripts/fetch_repos.py + render_city_svg.py -->
+     city:     same workflow, python scripts/fetch_repos.py + render_city_svg.py
+     koi:      redrawn nightly by .github/workflows/koi.yml (yalongwastaken/git-koi) -->
 
 <h3><code>erik@github ~ $ whoami</code></h3>
 
@@ -26,6 +27,13 @@
 <h3><code>erik@github ~ $ ./city.sh</code></h3>
 
 <img src="./assets/city.svg" width="860" alt="Every public repo as a building: height is its lines of source, lit windows are commits from the last day, scaffolding is an open pull request" />
+
+<br>
+<br>
+
+<h3><code>erik@github ~ $ ./koi.sh</code></h3>
+
+<img src="./koi/koi.gif" width="256" alt="A pixel-art koi drawn from Erik's public activity: languages color it, contributions grow it, yesterday decides how it swims" />
 
 <br>
 <br>

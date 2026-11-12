@@ -22,7 +22,7 @@ jobs:
       # v1.0.2, pinned to the commit so a moved tag cannot change what runs here
       - uses: yalongwastaken/git-koi@7305e9b1fadee6f43d3b4fa543a25d4cde79856e
         with:
-          body: white
+          body: black
           output-dir: koi
 
       - uses: actions/upload-artifact@v4
